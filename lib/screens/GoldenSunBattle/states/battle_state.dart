@@ -1,0 +1,1 @@
+enum BattleState { playerTurn, enemyTurn, victory, defeat }
