@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/djinn.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/item.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/spell.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/states/battle_menu_states.dart';
 
 class BattleMenu extends StatelessWidget {
@@ -9,14 +12,14 @@ class BattleMenu extends StatelessWidget {
   final VoidCallback onBack;
 
   // Listas dinámicas
-  final List<String> magics;
-  final List<String> djinns;
-  final List<String> items;
+  final List<Spell> magics;
+  final List<Djinn> djinns;
+  final List<Item> items;
 
   // Callbacks cuando se selecciona un elemento
-  final Function(String magic)? onMagic;
-  final Function(String djinn)? onDjinn;
-  final Function(String item)? onItem;
+  final Function(Spell magic)? onMagic;
+  final Function(Djinn djinn)? onDjinn;
+  final Function(Item item)? onItem;
 
   const BattleMenu({
     super.key,
@@ -39,13 +42,13 @@ class BattleMenu extends StatelessWidget {
       case BattleMenuState.root:
         return _buildRootMenu();
       case BattleMenuState.fight:
-        return _buildFightMenu();
+        return _buildFightMenu(context);
       case BattleMenuState.magic:
-        return _buildMagicMenu();
+        return _buildMagicMenu(context);
       case BattleMenuState.djinn:
-        return _buildDjinnMenu();
+        return _buildDjinnMenu(context);
       case BattleMenuState.items:
-        return _buildItemsMenu();
+        return _buildItemsMenu(context);
     }
   }
 
@@ -61,7 +64,7 @@ class BattleMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildFightMenu() {
+  Widget _buildFightMenu(context) {
     return _menuContainer(
       child: Column(
         children: [
@@ -70,16 +73,48 @@ class BattleMenu extends StatelessWidget {
             children: [
               ElevatedButton(onPressed: onAttack, child: const Text("Atacar")),
               ElevatedButton(
-                onPressed: () =>
-                   _buildMagicMenu(), // Para ir a magia, se usará el state desde el padre
+                onPressed: () async {
+                  final selectedMagic = await _showMagicDialog(context);
+
+                  if (selectedMagic != null) {
+                    // Aquí ya tienes la magia seleccionada
+                    print("Magia seleccionada: $selectedMagic");
+
+                    // TODO: abrir selección de objetivo
+                    // _selectTargetForMagic(selectedMagic);
+                  }
+                  // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
+                },
                 child: const Text("Magia"),
               ),
               ElevatedButton(
-                onPressed: () => onBack(),
+                onPressed: () async {
+                  final selectedDjinn = await _showDjinnDialog(context);
+
+                  if (selectedDjinn != null) {
+                    // Aquí ya tienes el djinn seleccionado
+                    print("Djinn seleccionado: ${selectedDjinn.name}");
+
+                    // TODO: abrir selección de objetivo
+                    // _selectTargetForDjinn(selectedDjinn);
+                  }
+                  // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
+                },
                 child: const Text("Djinn"),
               ),
               ElevatedButton(
-                onPressed: () => onBack(),
+                onPressed: () async {
+                  final selectedItem = await _showItemDialog(context);
+
+                  if (selectedItem != null) {
+                    // Aquí ya tienes el djinn seleccionado
+                    print("Item seleccionado: ${selectedItem.name}");
+
+                    // TODO: abrir selección de objetivo
+                    // _selectTargetForItem(selectedItem);
+                  }
+                  // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
+                },
                 child: const Text("Objeto"),
               ),
               ElevatedButton(
@@ -101,83 +136,209 @@ class BattleMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildMagicMenu() {
-    print("magia");
-  return Container(
-    color: Colors.grey[900],
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      children: [
-        const Text(
-          "Magias:",
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        const SizedBox(height: 8),
-        // Expanded para que el ListView ocupe el espacio disponible
-        Expanded(
-          child: ListView.builder(
-            itemCount: magics.length,
-            itemBuilder: (context, index) {
-              final magic = magics[index];
-              return Card(
-                color: Colors.grey[800],
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  title: Text(
-                    magic,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  onTap: () => onMagic?.call(magic),
-                ),
-              );
-            },
+  Future<Spell?> _showMagicDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text(
+            "Selecciona Magia",
+            style: TextStyle(color: Colors.white),
           ),
-        ),
-        TextButton(
-          onPressed: onBack,
-          child: const Text("← Atrás", style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
-}
-
-  Widget _buildDjinnMenu() {
-    return _menuContainer(
-      child: Column(
-        children: [
-          const Text("Djinn:", style: TextStyle(color: Colors.white)),
-          ...djinns.map(
-            (d) => ElevatedButton(
-              onPressed: () => onDjinn?.call(d),
-              child: Text(d),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 250, // altura fija para el scroll
+            child: ListView.builder(
+              itemCount: magics.length,
+              itemBuilder: (context, index) {
+                final magic = magics[index];
+                return Card(
+                  color: Colors.grey[800],
+                  child: ListTile(
+                    title: Text(
+                      magic.name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context, magic); // cerrar el diálogo
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Has elegido ${magic.name}")),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ),
-          TextButton(
-            onPressed: onBack,
-            child: const Text("← Atrás", style: TextStyle(color: Colors.white)),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text(
+                "Cancelar",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMagicMenu(BuildContext context) {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () async {
+          final selectedMagic = await _showMagicDialog(context);
+
+          if (selectedMagic != null) {
+            // Aquí ya tienes la magia seleccionada
+            print("Magia seleccionada: ${selectedMagic.name}");
+
+            // TODO: abrir selección de objetivo
+            // _selectTargetForMagic(selectedMagic);
+          }
+          // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
+        },
+        child: const Text("Magia"),
       ),
     );
   }
 
-  Widget _buildItemsMenu() {
-    return _menuContainer(
-      child: Column(
-        children: [
-          const Text("Objetos:", style: TextStyle(color: Colors.white)),
-          ...items.map(
-            (i) => ElevatedButton(
-              onPressed: () => onItem?.call(i),
-              child: Text(i),
+  Future<Djinn?> _showDjinnDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text(
+            "Selecciona Djinn",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 250, // altura fija para el scroll
+            child: ListView.builder(
+              itemCount: djinns.length,
+              itemBuilder: (context, index) {
+                final djinn = djinns[index];
+                return Card(
+                  color: Colors.grey[800],
+                  child: ListTile(
+                    title: Text(
+                      djinn.name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context, djinn); // cerrar el diálogo
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Has elegido ${djinn.name}")),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ),
-          TextButton(
-            onPressed: onBack,
-            child: const Text("← Atrás", style: TextStyle(color: Colors.white)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text(
+                "Cancelar",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDjinnMenu(BuildContext context) {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () async {
+          final selectedDjinn = await _showDjinnDialog(context);
+
+          if (selectedDjinn != null) {
+            // Aquí ya tienes el djinn seleccionado
+            print("Djinn seleccionado: ${selectedDjinn.name}");
+
+            // TODO: abrir selección de objetivo
+            // _selectTargetForDjinn(selectedDjinn);
+          }
+          // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
+        },
+        child: const Text("Magia"),
+      ),
+    );
+  }
+
+  Future<Item?> _showItemDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text(
+            "Selecciona Djinn",
+            style: TextStyle(color: Colors.white),
           ),
-        ],
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 250, // altura fija para el scroll
+            child: ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return Card(
+                  color: Colors.grey[800],
+                  child: ListTile(
+                    title: Text(
+                      item.name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context, item); // cerrar el diálogo
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Has elegido ${item.name}")),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text(
+                "Cancelar",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildItemsMenu(BuildContext context) {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () async {
+          final selectedItem = await _showItemDialog(context);
+
+          if (selectedItem != null) {
+            // Aquí ya tienes el djinn seleccionado
+            print("Item seleccionado: ${selectedItem.name}");
+
+            // TODO: abrir selección de objetivo
+            // _selectTargetForItem(selectedItem);
+          }
+          // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
+        },
+        child: const Text("Magia"),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/djinn.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/widgets/battle_menu.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/manager/battle_manager.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/enemy.dart';
@@ -6,6 +7,7 @@ import 'package:zhagurplayground/screens/GoldenSunBattle/models/item.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/player.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/spell.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/states/battle_menu_states.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/widgets/player_status_card.dart';
 
 class GoldenSunBattle extends StatefulWidget {
   const GoldenSunBattle({super.key});
@@ -18,6 +20,7 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
   late BattleManager manager;
 
   BattleMenuState menuState = BattleMenuState.root;
+
   late Player currentPlayer;
   @override
   void initState() {
@@ -66,6 +69,7 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
     currentPlayer = manager.players.first;
   }
 
+  int currentPlayerIndex = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,18 +94,15 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
   Widget _buildPlayerHud() {
     return Align(
       alignment: Alignment.topRight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: manager.players.map((p) {
-          return Card(
-            color: Colors.black54,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                "${p.name}  HP:${p.hp}/${p.maxHp}  MP:${p.mp}/${p.maxMp}",
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
+          return PlayerStatusCard(
+            name: p.name,
+            hp: p.hp,
+            mp: p.mp,
+            maxHp: p.maxHp,
+            maxMp: p.maxMp,
           );
         }).toList(),
       ),
@@ -133,15 +134,25 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
   }
 
   Widget _buildMenu() {
-    BattleMenuState currentState = BattleMenuState.root;
+    //BattleMenuState currentState = BattleMenuState.root;
     return Container(
       color: Colors.grey[900],
       padding: const EdgeInsets.all(16),
       child: BattleMenu(
         state: menuState,
         onRun: () {},
-        onAttack: () {},
-        onDefend: () {},
+        onAttack: () {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Has elegido atacar")));
+          _endTurn();
+        },
+        onDefend: () {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Has elegido defenderte")));
+          _endTurn();
+        },
         onBack: () {
           setState(() {
             if (menuState == BattleMenuState.fight) {
@@ -151,25 +162,28 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
             }
           });
         },
-        magics: currentPlayer.spells.map((s) => s.name).toList(),
-        djinns: currentPlayer.djinns.map((d) => d.name).toList(),
-        items: currentPlayer.items.map((i) => i.name).toList(),
+        magics: currentPlayer.spells.toList(),
+        djinns: currentPlayer.djinns.toList(),
+        items: currentPlayer.items.toList(),
         onMagic: (spell) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("${currentPlayer.name} lanzará $spell")),
-          );
+            menuState = BattleMenuState.magic;
         },
         onDjinn: (djinn) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("${currentPlayer.name} usará $djinn")),
-          );
+          menuState = BattleMenuState.djinn;
         },
         onItem: (item) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("${currentPlayer.name} usará $item")),
-          );
+          menuState = BattleMenuState.items;
         },
       ),
     );
+  }
+
+  void _endTurn() {
+    setState(() {
+      currentPlayerIndex++;
+      if (currentPlayerIndex >= manager.players.length) {
+        currentPlayerIndex = 0; // reinicia o luego pasamos a enemigos
+      }
+    });
   }
 }

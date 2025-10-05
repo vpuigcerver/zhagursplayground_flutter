@@ -1,10 +1,11 @@
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/character.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/djinn.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/item.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/spell.dart';
 
 class Player extends Character {
   final List<Djinn> djinns;
-  
+
   Player({
     required super.name,
     required super.maxHp,
@@ -33,9 +34,4 @@ class Player extends Character {
     item.use(target);
     items.remove(item);
   }
-}
-
-class Djinn {
-  String name;
-  Djinn({required this.name});
 }
