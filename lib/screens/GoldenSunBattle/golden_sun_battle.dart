@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/character.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/djinn.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/models/planned_action.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/widgets/battle_menu.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/manager/battle_manager.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/enemy.dart';
@@ -20,8 +22,11 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
   late BattleManager manager;
 
   BattleMenuState menuState = BattleMenuState.root;
+  int currentPlayerIndex = 0;
+  String battleLog = "¡Comienza!";
 
-  late Player currentPlayer;
+  Player get currentPlayer => manager.players[currentPlayerIndex];
+
   @override
   void initState() {
     super.initState();
@@ -65,11 +70,8 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
         ),
       ],
     );
-
-    currentPlayer = manager.players.first;
   }
 
-  int currentPlayerIndex = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,6 +84,20 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [_buildEnemies(), _buildPlayers()],
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              color: Colors.black.withOpacity(0.6),
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                battleLog,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.yellow,
+                  fontSize: 16,
+                  fontFamily: "monospace",
+                ),
               ),
             ),
             _buildMenu(),
@@ -134,7 +150,6 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
   }
 
   Widget _buildMenu() {
-    //BattleMenuState currentState = BattleMenuState.root;
     return Container(
       color: Colors.grey[900],
       padding: const EdgeInsets.all(16),
@@ -142,23 +157,40 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
         state: menuState,
         onRun: () {},
         onAttack: () {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Has elegido atacar")));
-          _endTurn();
+          // por ahora selecciona el primer enemigo TODO _selectTarget();
+          final enemyTarget = manager.enemies.firstWhere(
+            (e) => e.isAlive,
+            orElse: () => manager.enemies.first,
+          );
+          _onPlayerActionChosen(
+            PlannedAction(
+              actor: currentPlayer,
+              type: ActionType.attack,
+              target: enemyTarget,
+            ),
+          );
         },
         onDefend: () {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Has elegido defenderte")));
-          _endTurn();
+          _onPlayerActionChosen(
+            PlannedAction(
+              actor: currentPlayer,
+              type: ActionType.defend,
+            ),
+          );
         },
         onBack: () {
           setState(() {
-            if (menuState == BattleMenuState.fight) {
-              menuState = BattleMenuState.root;
+            if (manager.plannedActions.isEmpty) {
+              if (menuState == BattleMenuState.fight) {
+                battleLog = "¡Comienza!";
+                menuState = BattleMenuState.root;
+              } else {
+                battleLog =
+                    "Elige acción: ${manager.players[currentPlayerIndex].name}";
+                menuState = BattleMenuState.fight;
+              }
             } else {
-              menuState = BattleMenuState.fight;
+              _onBackPressed();
             }
           });
         },
@@ -166,7 +198,7 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
         djinns: currentPlayer.djinns.toList(),
         items: currentPlayer.items.toList(),
         onMagic: (spell) {
-            menuState = BattleMenuState.magic;
+          menuState = BattleMenuState.magic;
         },
         onDjinn: (djinn) {
           menuState = BattleMenuState.djinn;
@@ -178,12 +210,104 @@ class _GoldenSunBattleState extends State<GoldenSunBattle> {
     );
   }
 
-  void _endTurn() {
+  void _onBackPressed() {
     setState(() {
-      currentPlayerIndex++;
-      if (currentPlayerIndex >= manager.players.length) {
-        currentPlayerIndex = 0; // reinicia o luego pasamos a enemigos
+      if (manager.plannedActions.isNotEmpty) {
+        // eliminar la última acción guardada
+        manager.removeLastPlayerAction();
+
+        // retroceder al jugador anterior
+        currentPlayerIndex = (currentPlayerIndex - 1);
+        if (currentPlayerIndex < 0) {
+          currentPlayerIndex = 0; // seguridad
+        }
+
+        battleLog = "Elige acción: ${manager.players[currentPlayerIndex].name}";
+      } else {
+        // si no hay acciones planificadas, volvemos al menú raíz
+        battleLog = "¡Comienza!";
+        menuState = BattleMenuState.root;
       }
     });
+  }
+
+  void _onPlayerActionChosen(PlannedAction action) {
+    manager.addPlayerAction(action);
+    print("fin del turno de ${currentPlayer.name}");
+    _advanceToNextPlayerOrResolve();
+  }
+
+  void _advanceToNextPlayerOrResolve() {
+    // Avanzar índice al siguiente jugador vivo
+    setState(() {
+      int next = currentPlayerIndex;
+      bool found = false;
+      for (int i = 0; i < manager.players.length; i++) {
+        next = (currentPlayerIndex + 1 + i) % manager.players.length;
+        if (manager.players[next].isAlive) {
+          currentPlayerIndex = next;
+          found = true;
+
+          battleLog =
+              "Elige acción: ${manager.players[currentPlayerIndex].name}";
+          break;
+        }
+      }
+
+      if (!found) {
+        // no hay siguiente jugador vivo (poco probable). Reiniciar a 0.
+        currentPlayerIndex = 0;
+      }
+    });
+
+    // Si todos los jugadores han planeado, pedimos acciones a enemigos y resolvemos la ronda.
+    if (manager.allPlayersPlanned) {
+      print("todos han seleccionado la opcion, turno de los enemigos");
+      _resolveRound();
+    }
+  }
+
+  Future<void> _resolveRound() async {
+    manager.enemyDecideActions();
+
+    setState(() => battleLog = "Resolviendo acciones...");
+    await manager.executePlannedActions(
+      logCallback: (msg) {
+        setState(() => battleLog = msg);
+      },
+      perActionDelay: const Duration(milliseconds: 1000),
+    );
+
+    // Ronda terminada -> volver a selección de jugadores (el índice queda en el primer jugador vivo)
+    setState(() {
+      currentPlayerIndex = manager.players.indexWhere((p) => p.isAlive);
+      if (currentPlayerIndex == -1) {
+        // todos muertos -> derrota
+        battleLog = "Derrota";
+      } else {
+        battleLog = "Elige acción: ${manager.players[currentPlayerIndex].name}";
+      }
+    });
+  }
+
+  // Ejemplo: si desde el menú eliges "Atacar", abres el target selector y al confirmar llamas:
+  void onAttackConfirmed(Character target) {
+    final action = PlannedAction(
+      actor: currentPlayer,
+      type: ActionType.attack,
+      target: target,
+    );
+    _onPlayerActionChosen(action);
+  }
+
+  // Si eliges magia:
+  void onMagicConfirmed(Spell spell, Character target) {
+    final action = PlannedAction(
+      actor: currentPlayer,
+      type: ActionType.spell,
+      spell: spell,
+      target: target,
+    );
+    _onPlayerActionChosen(action);
   }
 }

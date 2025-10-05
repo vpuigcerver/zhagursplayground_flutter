@@ -10,6 +10,7 @@ abstract class Character {
   int agility;
   List<Spell> spells;
   List<Item> items;
+  bool isDefending;
 
   Character({
     required this.name,
@@ -20,6 +21,7 @@ abstract class Character {
     required this.agility,
     required this.spells,
     required this.items,
+    required this.isDefending
   });
 
   bool get isAlive => hp > 0;
@@ -44,6 +46,3 @@ abstract class Character {
     if (mp < 0) mp = 0;
   }
 }
-
-
-

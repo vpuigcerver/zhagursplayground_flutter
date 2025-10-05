@@ -2,7 +2,7 @@ import 'package:zhagurplayground/screens/GoldenSunBattle/models/character.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/spell.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/item.dart';
 
-enum ActionType { attack, spell, djinn, item, defend }
+enum ActionType { attack, spell, djinn, item, defend, run }
 
 class PlannedAction {
   final Character actor;

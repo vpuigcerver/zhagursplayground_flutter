@@ -14,6 +14,7 @@ class Player extends Character {
     required super.spells,
     required super.items,
     required this.djinns,
+    super.isDefending = false,
   }) : super(
           hp: maxHp,
           mp: maxMp,

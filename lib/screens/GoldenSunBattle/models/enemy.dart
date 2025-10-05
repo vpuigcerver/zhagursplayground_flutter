@@ -12,6 +12,7 @@ class Enemy extends Character {
     required super.agility,
     required super.spells,
     required super.items,
+    super.isDefending= false,
   }) : super(
           hp: maxHp,
           mp: maxMp,
