@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/enemy.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/planned_action.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/player.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/states/character_state.dart';
 
 class BattleManager {
   List<Player> players;
@@ -17,10 +20,10 @@ class BattleManager {
   }
 
   void removeLastPlayerAction() {
-  if (plannedActions.isNotEmpty) {
-    plannedActions.removeLast();
+    if (plannedActions.isNotEmpty) {
+      plannedActions.removeLast();
+    }
   }
-}
 
   /// ¿Han planeado todos los jugadores vivos?
   bool get allPlayersPlanned {
@@ -31,11 +34,20 @@ class BattleManager {
 
   void enemyDecideActions() {
     //IA enemy
+
     for (var enemy in enemies.where((e) => e.isAlive)) {
       var target = players.firstWhere((p) => p.isAlive);
-      plannedActions.add(
-        PlannedAction(actor: enemy, type: ActionType.attack, target: target),
-      );
+      var randomAttack = Random().nextDouble();
+      if (randomAttack < 0.5) {
+        //Spell chosen = enemy.chooseSpell(players.firstWhere((p) => p.isAlive));
+        plannedActions.add(
+          PlannedAction(actor: enemy, type: ActionType.spell, target: target),
+        );
+      } else {
+        plannedActions.add(
+          PlannedAction(actor: enemy, type: ActionType.attack, target: target),
+        );
+      }
     }
   }
 
@@ -48,7 +60,7 @@ class BattleManager {
     plannedActions.clear();
   }
 
-  void _clearDefendStatus(){
+  void _clearDefendStatus() {
     for (var player in players.where((p) => p.isDefending)) {
       print("${player.name} is defending");
       player.isDefending = false;
@@ -72,11 +84,17 @@ class BattleManager {
           if (action.target != null && action.target!.isAlive) {
             // TODO hace daño en funcion del valor del equipo
             final int dmg = (action.actor is Player) ? 20 : 10;
+            action.actor.state = CharacterState.attack;
 
-            action.target!.takeDamage(action.target!.isDefending ? (dmg/2).floor() : dmg);
+            action.target!.takeDamage(
+              action.target!.isDefending ? (dmg / 2).floor() : dmg,
+            );
+            action.target!.state = CharacterState.hurt;
             logCallback?.call(
               "${action.actor.name} ataca a ${action.target!.name} por $dmg",
             );
+            action.target!.state = CharacterState.idle;
+            action.actor.state = CharacterState.idle;
           }
           break;
 
@@ -87,10 +105,14 @@ class BattleManager {
             if (action.actor.mp >= spell.cost) {
               action.actor.mp -= spell.cost;
               if (action.target != null && action.target!.isAlive) {
+                action.actor.state = CharacterState.cast;
                 action.target!.takeDamage(spell.damage);
+                action.target!.state = CharacterState.hurt;
                 logCallback?.call(
                   "${action.actor.name} usa ${spell.name} sobre ${action.target!.name}",
                 );
+                action.target!.state = CharacterState.idle;
+                action.actor.state = CharacterState.idle;
               } else {
                 logCallback?.call("${action.actor.name} usa ${spell.name}");
               }
@@ -99,6 +121,7 @@ class BattleManager {
                 "${action.actor.name} no tiene MP para ${spell.name}",
               );
             }
+            
           }
           break;
 
@@ -106,6 +129,7 @@ class BattleManager {
           if (action.item != null && action.target != null) {
             // implementar item.apply(...) según tu modelo
             //action.item!.apply(action.actor, action.target!);
+            action.actor.state = CharacterState.item;
             if (action.actor.name == action.target?.name) {
               logCallback?.call(
                 "${action.actor.name} usa ${action.item!.name}",
@@ -115,19 +139,23 @@ class BattleManager {
                 "${action.actor.name} usa ${action.item!.name} en ${action.target!.name}",
               );
             }
+            action.actor.state = CharacterState.idle;
           }
           break;
 
         case ActionType.defend:
+          action.actor.state = CharacterState.defend;
           action.actor.isDefending = true;
           logCallback?.call("${action.actor.name} se defiende");
           break;
 
         case ActionType.djinn:
           // lógica de djinn
+          action.actor.state = CharacterState.cast;
           logCallback?.call(
             "${action.actor.name} usa DJIN ${action.spell?.name ?? ''}",
           );
+          action.actor.state = CharacterState.idle;
           break;
 
         case ActionType.run:

@@ -3,6 +3,7 @@ import 'package:zhagurplayground/screens/GoldenSunBattle/models/djinn.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/item.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/models/spell.dart';
 import 'package:zhagurplayground/screens/GoldenSunBattle/states/battle_menu_states.dart';
+import 'package:zhagurplayground/screens/GoldenSunBattle/widgets/action_button.dart';
 
 class BattleMenu extends StatelessWidget {
   final BattleMenuState state;
@@ -55,10 +56,18 @@ class BattleMenu extends StatelessWidget {
   Widget _buildRootMenu() {
     return _menuContainer(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(onPressed: onBack, child: const Text("Luchar")),
-          ElevatedButton(onPressed: onRun, child: const Text("Huir")),
+          ActionButton(
+            onPressed: onBack,
+            label: "Luchar",
+            iconPath: 'assets/images/battle/icons/fight.png',
+          ),
+          ActionButton(
+            onPressed: onRun,
+            label: "Huir",
+            iconPath: 'assets/images/battle/icons/run.png',
+          ),
         ],
       ),
     );
@@ -69,10 +78,16 @@ class BattleMenu extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton(onPressed: onAttack, child: const Text("Atacar")),
-              ElevatedButton(
+              ActionButton(
+                label: "Atacar",
+                iconPath: 'assets/images/battle/icons/attack.png',
+                onPressed: onAttack,
+              ),
+              ActionButton(
+                label: "Magia",
+                iconPath: 'assets/images/battle/icons/spell.png',
                 onPressed: () async {
                   final selectedMagic = await _showMagicDialog(context);
 
@@ -85,9 +100,10 @@ class BattleMenu extends StatelessWidget {
                   }
                   // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
                 },
-                child: const Text("Magia"),
               ),
-              ElevatedButton(
+              ActionButton(
+                label: "Djinn",
+                iconPath: "assets/images/battle/icons/djinn.png",
                 onPressed: () async {
                   final selectedDjinn = await _showDjinnDialog(context);
 
@@ -100,9 +116,8 @@ class BattleMenu extends StatelessWidget {
                   }
                   // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
                 },
-                child: const Text("Djinn"),
               ),
-              ElevatedButton(
+              ActionButton(
                 onPressed: () async {
                   final selectedItem = await _showItemDialog(context);
 
@@ -115,19 +130,19 @@ class BattleMenu extends StatelessWidget {
                   }
                   // Si es null → el usuario canceló, no cambia el estado y sigue en FightMenu
                 },
-                child: const Text("Objeto"),
+                label: "Objeto",
+                iconPath: "assets/images/battle/icons/items.png",
               ),
-              ElevatedButton(
+              ActionButton(
+                label: "Defender",
+                iconPath: "assets/images/battle/icons/defending.png",
                 onPressed: onDefend,
-                child: const Text("Defender"),
               ),
               const SizedBox(height: 10),
-              TextButton(
+              ActionButton(
                 onPressed: onBack,
-                child: const Text(
-                  "← Atrás",
-                  style: TextStyle(color: Colors.white),
-                ),
+                iconPath: "assets/images/battle/icons/atras.png",
+                label: "← Atrás",
               ),
             ],
           ),
@@ -345,8 +360,8 @@ class BattleMenu extends StatelessWidget {
 
   Widget _menuContainer({required Widget child}) {
     return Container(
-      color: Colors.grey[900],
-      padding: const EdgeInsets.all(16),
+      //color: Colors.grey[900]!.withAlpha(200),
+      //padding: const EdgeInsets.fromLTRB(0,0,0,16),
       child: child,
     );
   }

@@ -1,3 +1,5 @@
+import 'package:zhagurplayground/screens/GoldenSunBattle/states/character_state.dart';
+
 import 'item.dart';
 import 'spell.dart';
 
@@ -11,6 +13,8 @@ abstract class Character {
   List<Spell> spells;
   List<Item> items;
   bool isDefending;
+  
+  CharacterState state = CharacterState.idle;
 
   Character({
     required this.name,
